@@ -17,6 +17,9 @@ const STACK_SIZE: usize = 16;
 const OFF_COLOR: u32 = 0xFF225522;
 const ON_COLOR: u32 = 0xFF22AA22;
 
+const REGISTER_COUNT: usize = 16;
+const KEY_COUNT: usize = 16;
+
 pub struct Chip8 {
     pub keys: Vec<bool>,
     vblank: bool,
@@ -31,34 +34,20 @@ pub struct Chip8 {
     sp: u8,
 }
 
-impl Default for Chip8 {
-    fn default() -> Self {
-        Self {
-            vblank: false,
-            keys: Vec::new(),
-            rng: make_rng(),
-            screen: Vec::new(),
-            memory: Vec::new(),
-            stack: Vec::new(),
-            reg: Vec::new(),
-            i: 0,
-            delay: 0,
-            pc: 0,
-            sp: 0,
-        }
-    }
-}
-
 impl Chip8 {
     pub fn new() -> Self {
         Self {
-            keys: vec![false; 16],
+            keys: vec![false; REGISTER_COUNT],
             screen: vec![OFF_COLOR; WIDTH * HEIGHT],
             memory: vec![0; MEMORY_SIZE],
+            rng: make_rng(),
             stack: vec![0; STACK_SIZE],
-            reg: vec![0; 16],
+            reg: vec![0; KEY_COUNT],
             pc: 0x200,
-            ..Default::default()
+            i: 0,
+            delay: 0,
+            sp: 0,
+            vblank: false,
         }
     }
 
