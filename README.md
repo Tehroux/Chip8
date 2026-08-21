@@ -2,7 +2,6 @@
 
 ## not implemented
 - sound timer
-- font memory
 - wait key is on pressed and not released
 
 ## screenshot

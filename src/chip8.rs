@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::Read,
-    path::Path,
-};
+use std::{fs::File, io::Read, path::Path};
 
 use rand::{RngExt, make_rng, rngs::SmallRng};
 
@@ -36,10 +32,21 @@ pub struct Chip8 {
 
 impl Chip8 {
     pub fn new() -> Self {
+        let mut memory = vec![
+            0xF0, 0x90, 0x90, 0x90, 0xF0, 0x20, 0x60, 0x20, 0x20, 0x70, 0xF0, 0x10, 0xF0, 0x80,
+            0xF0, 0xF0, 0x10, 0xF0, 0x10, 0xF0, 0x90, 0x90, 0xF0, 0x10, 0x10, 0xF0, 0x80, 0xF0,
+            0x10, 0xF0, 0xF0, 0x80, 0xF0, 0x90, 0xF0, 0xF0, 0x10, 0x20, 0x40, 0x40, 0xF0, 0x90,
+            0xF0, 0x90, 0xF0, 0xF0, 0x90, 0xF0, 0x10, 0xF0, 0xF0, 0x90, 0xF0, 0x90, 0x90, 0xE0,
+            0x90, 0xE0, 0x90, 0xE0, 0xF0, 0x80, 0x80, 0x80, 0xF0, 0xE0, 0x90, 0x90, 0x90, 0xE0,
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, 0xF0, 0x80, 0xF0, 0x80, 0x80,
+        ];
+
+        memory.resize(MEMORY_SIZE, 0);
+
         Self {
             keys: vec![false; REGISTER_COUNT],
             screen: vec![OFF_COLOR; WIDTH * HEIGHT],
-            memory: vec![0; MEMORY_SIZE],
+            memory,
             rng: make_rng(),
             stack: vec![0; STACK_SIZE],
             reg: vec![0; KEY_COUNT],
@@ -108,11 +115,11 @@ impl Chip8 {
                 self.call(n1, n2, n3);
                 return;
             }
-            (0x3, n1, _ , _  ) => self.se(n1, il),
-            (0x4, n1, _ , _  ) => self.sne(n1, il),
+            (0x3, n1, _, _) => self.se(n1, il),
+            (0x4, n1, _, _) => self.sne(n1, il),
             (0x5, n1, n2, 0x0) => self.se_reg(n1, n2),
-            (0x6, n1, _ , _  ) => self.ld(n1, il),
-            (0x7, n1, _ , _  ) => self.add(n1, il),
+            (0x6, n1, _, _) => self.ld(n1, il),
+            (0x7, n1, _, _) => self.add(n1, il),
             (0x8, n1, n2, 0x0) => self.ld_reg(n1, n2),
             (0x8, n1, n2, 0x1) => self.or(n1, n2),
             (0x8, n1, n2, 0x2) => self.and(n1, n2),
@@ -123,15 +130,15 @@ impl Chip8 {
             (0x8, n1, n2, 0x7) => self.subn(n1, n2),
             (0x8, n1, n2, 0xE) => self.shl(n1, n2),
             (0x9, n1, n2, 0x0) => self.sne_reg(n1, n2),
-            (0xA, n1, n2, n3 ) => self.ld_i(n1, n2, n3),
-            (0xB, n1, n2, n3 ) => {
+            (0xA, n1, n2, n3) => self.ld_i(n1, n2, n3),
+            (0xB, n1, n2, n3) => {
                 self.jmp_v0(n1, n2, n3);
                 return;
             }
-            (0xC, n1, _ , _  ) => self.rnd(n1, il),
-            (0xD, n1, n2, n3 ) => {
+            (0xC, n1, _, _) => self.rnd(n1, il),
+            (0xD, n1, n2, n3) => {
                 if !self.drw(n1, n2, n3) {
-                    return
+                    return;
                 }
             }
             (0xE, n1, 0x9, 0xE) => self.skp(n1),
@@ -144,11 +151,12 @@ impl Chip8 {
             }
             (0xF, n1, 0x1, 0x5) => self.ld_todelay(n1),
             (0xF, n1, 0x1, 0xE) => self.add_i(n1),
+            (0xF, n1, 0x2, 0x9) => self.ld_d_i(n1),
             (0xF, n1, 0x3, 0x3) => self.bcd(n1),
             (0xF, n1, 0x5, 0x5) => self.ld_i_vx(n1),
             (0xF, n1, 0x6, 0x5) => self.ld_vx_i(n1),
             _ => {
-                println!( "unknown -> {:x} : {:02x}{:02x}", self.pc, ih, il );
+                println!("unknown -> {:x} : {:02x}{:02x}", self.pc, ih, il);
                 unimplemented!();
             }
         }
@@ -319,10 +327,10 @@ impl Chip8 {
     }
 
     fn drw(&mut self, n1: u8, n2: u8, n3: u8) -> bool {
-        if ! self.vblank {
-            return false
+        if !self.vblank {
+            return false;
         }
-        
+
         let x = self.get_reg(n1);
         let y = self.get_reg(n2);
 
@@ -402,6 +410,11 @@ impl Chip8 {
     fn add_i(&mut self, n1: u8) {
         let vx = self.get_reg(n1);
         self.i += vx as u16;
+    }
+
+    fn ld_d_i(&mut self, n1: u8) {
+        let vx = self.get_reg(n1);
+        self.i = vx as u16 * 5;
     }
 
     fn bcd(&mut self, n1: u8) {
