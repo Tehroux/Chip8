@@ -96,13 +96,17 @@ impl Chip8 {
         self.vblank = true;
     }
 
-    pub fn run(&mut self) {
-        let ih = self.memory[self.pc as usize];
-        let il = self.memory[self.pc as usize + 1];
+    fn fetch_instruction(&self) -> (u8, u8) {
+        (self.memory[self.pc as usize],
+         self.memory[self.pc as usize + 1])
+    }
 
-        let ins = (ih & 0xF0) >> 4;
+    pub fn run(&mut self) {
+        let (ih, il) = self.fetch_instruction();
+
+        let ins = ih  >> 4;
         let op1 = ih & 0x0F;
-        let op2 = (il & 0xF0) >> 4;
+        let op2 = il  >> 4;
         let op3 = il & 0x0F;
 
         match (ins, op1, op2, op3) {
@@ -162,10 +166,10 @@ impl Chip8 {
             }
         }
 
-        self.next();
+        self.next_instruction();
     }
 
-    fn next(&mut self) {
+    fn next_instruction(&mut self) {
         self.pc += 2;
     }
 
@@ -195,14 +199,14 @@ impl Chip8 {
     fn se(&mut self, n1: u8, kk: u8) {
         let vx = self.get_reg(n1);
         if vx == kk {
-            self.next();
+            self.next_instruction();
         }
     }
 
     fn sne(&mut self, n1: u8, kk: u8) {
         let vx = self.get_reg(n1);
         if vx != kk {
-            self.next();
+            self.next_instruction();
         }
     }
 
@@ -210,7 +214,7 @@ impl Chip8 {
         let vx = self.get_reg(n1);
         let vy = self.get_reg(n2);
         if vx == vy {
-            self.next();
+            self.next_instruction();
         }
     }
 
@@ -307,7 +311,7 @@ impl Chip8 {
         let vx = self.get_reg(n1);
         let vy = self.get_reg(n2);
         if vx != vy {
-            self.next();
+            self.next_instruction();
         }
     }
 
@@ -378,14 +382,14 @@ impl Chip8 {
     fn skp(&mut self, n1: u8) {
         let vx = self.get_reg(n1);
         if self.keys[vx as usize] {
-            self.next();
+            self.next_instruction();
         }
     }
 
     fn sknp(&mut self, n1: u8) {
         let vx = self.get_reg(n1);
         if !self.keys[vx as usize] {
-            self.next();
+            self.next_instruction();
         }
     }
 
