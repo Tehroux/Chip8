@@ -119,11 +119,11 @@ impl Chip8 {
                 self.call(n1, n2, n3);
                 return;
             }
-            (0x3, n1, n2, n3) => self.se(n1, n2, n3),
-            (0x4, n1, n2, n3) => self.sne(n1, n2, n3),
+            (0x3, n1, _ , _  ) => self.se(n1, il),
+            (0x4, n1, _ , _  ) => self.sne(n1, il),
             (0x5, n1, n2, 0x0) => self.se_reg(n1, n2),
-            (0x6, n1, n2, n3) => self.ld(n1, n2, n3),
-            (0x7, n1, n2, n3) => self.add(n1, n2, n3),
+            (0x6, n1, _ , _  ) => self.ld(n1, il),
+            (0x7, n1, _ , _  ) => self.add(n1, il),
             (0x8, n1, n2, 0x0) => self.ld_reg(n1, n2),
             (0x8, n1, n2, 0x1) => self.or(n1, n2),
             (0x8, n1, n2, 0x2) => self.and(n1, n2),
@@ -134,18 +134,15 @@ impl Chip8 {
             (0x8, n1, n2, 0x7) => self.subn(n1, n2),
             (0x8, n1, n2, 0xE) => self.shl(n1, n2),
             (0x9, n1, n2, 0x0) => self.sne_reg(n1, n2),
-            (0xA, n1, n2, n3) => self.ld_i(n1, n2, n3),
-            (0xB, n1, n2, n3) => {
+            (0xA, n1, n2, n3 ) => self.ld_i(n1, n2, n3),
+            (0xB, n1, n2, n3 ) => {
                 self.jmp_v0(n1, n2, n3);
                 return;
             }
-            (0xC, n1, n2, n3) => self.rnd(n1, n2, n3),
-            (0xD, n1, n2, n3) => {
-                if self.vblank {
-                    self.drw(n1, n2, n3);
-                    self.vblank = false;
-                } else {
-                    return;
+            (0xC, n1, _ , _  ) => self.rnd(n1, il),
+            (0xD, n1, n2, n3 ) => {
+                if !self.drw(n1, n2, n3) {
+                    return
                 }
             }
             (0xE, n1, 0x9, 0xE) => self.skp(n1),
@@ -161,12 +158,9 @@ impl Chip8 {
             (0xF, n1, 0x3, 0x3) => self.bcd(n1),
             (0xF, n1, 0x5, 0x5) => self.ld_i_vx(n1),
             (0xF, n1, 0x6, 0x5) => self.ld_vx_i(n1),
-            (a, b, c, d) => {
-                println!(
-                    "unknown -> {:x} : {:02x}{:02x} | {:x} {:x} {:x} {:x}",
-                    self.pc, ih, il, a, b, c, d
-                );
-                todo!();
+            _ => {
+                println!( "unknown -> {:x} : {:02x}{:02x}", self.pc, ih, il );
+                unimplemented!();
             }
         }
 
@@ -200,16 +194,14 @@ impl Chip8 {
         self.pc = addr;
     }
 
-    fn se(&mut self, n1: u8, k1: u8, k2: u8) {
-        let kk = k1 << 4 | k2;
+    fn se(&mut self, n1: u8, kk: u8) {
         let vx = self.get_reg(n1);
         if vx == kk {
             self.next();
         }
     }
 
-    fn sne(&mut self, n1: u8, k1: u8, k2: u8) {
-        let kk = k1 << 4 | k2;
+    fn sne(&mut self, n1: u8, kk: u8) {
         let vx = self.get_reg(n1);
         if vx != kk {
             self.next();
@@ -224,13 +216,11 @@ impl Chip8 {
         }
     }
 
-    fn ld(&mut self, n1: u8, k1: u8, k2: u8) {
-        let kk = k1 << 4 | k2;
+    fn ld(&mut self, n1: u8, kk: u8) {
         self.set_reg(n1, kk);
     }
 
-    fn add(&mut self, n1: u8, k1: u8, k2: u8) {
-        let kk = k1 << 4 | k2;
+    fn add(&mut self, n1: u8, kk: u8) {
         let vx = self.get_reg(n1);
         let res = vx.overflowing_add(kk);
         self.set_reg(n1, res.0);
@@ -334,13 +324,16 @@ impl Chip8 {
         self.pc = addr + v0 as u16;
     }
 
-    fn rnd(&mut self, n1: u8, k1: u8, k2: u8) {
-        let kk = k1 << 4 | k2;
+    fn rnd(&mut self, n1: u8, kk: u8) {
         let r: u8 = self.rng.random();
         self.set_reg(n1, kk & r);
     }
 
-    fn drw(&mut self, n1: u8, n2: u8, n3: u8) {
+    fn drw(&mut self, n1: u8, n2: u8, n3: u8) -> bool {
+        if ! self.vblank {
+            return false
+        }
+        
         let x = self.get_reg(n1);
         let y = self.get_reg(n2);
 
@@ -380,6 +373,8 @@ impl Chip8 {
             }
         }
         self.set_reg(0xF, c);
+        self.set_vblank();
+        true
     }
 
     fn skp(&mut self, n1: u8) {
