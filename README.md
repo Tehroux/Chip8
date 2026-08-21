@@ -22,11 +22,13 @@
 
 ### Test quirks
 rom that test implementation quirks
+
 ![quirk test](screenshots/test_quirk_1.png)
 ![quirk test](screenshots/test_quirk_2.png)
 ![quirk test](screenshots/test_quirk_3.png)
 
 ### Test key
 rom that test key pressed
+
 ![key test](screenshots/test_key_1.png)
 ![key test](screenshots/test_key_2.png)
