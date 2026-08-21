@@ -99,62 +99,63 @@ impl Chip8 {
     pub fn run(&mut self) {
         let ih = self.memory[self.pc as usize];
         let il = self.memory[self.pc as usize + 1];
-        let int = (ih & 0xF0) >> 4;
+
+        let ins = (ih & 0xF0) >> 4;
         let op1 = ih & 0x0F;
         let op2 = (il & 0xF0) >> 4;
         let op3 = il & 0x0F;
 
-        match (int, op1, op2, op3) {
+        match (ins, op1, op2, op3) {
             (0x0, 0x0, 0xE, 0x0) => self.cls(),
             (0x0, 0x0, 0xE, 0xE) => self.ret(),
-            (0x1, n1, n2, n3) => {
-                self.jmp(n1, n2, n3);
+            (0x1, vx, vy, n3) => {
+                self.jmp(vx, vy, n3);
                 return;
             }
-            (0x2, n1, n2, n3) => {
-                self.call(n1, n2, n3);
+            (0x2, vx, vy, n3) => {
+                self.call(vx, vy, n3);
                 return;
             }
-            (0x3, n1, _, _) => self.se(n1, il),
-            (0x4, n1, _, _) => self.sne(n1, il),
-            (0x5, n1, n2, 0x0) => self.se_reg(n1, n2),
-            (0x6, n1, _, _) => self.ld(n1, il),
-            (0x7, n1, _, _) => self.add(n1, il),
-            (0x8, n1, n2, 0x0) => self.ld_reg(n1, n2),
-            (0x8, n1, n2, 0x1) => self.or(n1, n2),
-            (0x8, n1, n2, 0x2) => self.and(n1, n2),
-            (0x8, n1, n2, 0x3) => self.xor(n1, n2),
-            (0x8, n1, n2, 0x4) => self.add_reg(n1, n2),
-            (0x8, n1, n2, 0x5) => self.sub(n1, n2),
-            (0x8, n1, n2, 0x6) => self.shr(n1, n2),
-            (0x8, n1, n2, 0x7) => self.subn(n1, n2),
-            (0x8, n1, n2, 0xE) => self.shl(n1, n2),
-            (0x9, n1, n2, 0x0) => self.sne_reg(n1, n2),
-            (0xA, n1, n2, n3) => self.ld_i(n1, n2, n3),
-            (0xB, n1, n2, n3) => {
-                self.jmp_v0(n1, n2, n3);
+            (0x3, vx, _, _) => self.se(vx, il),
+            (0x4, vx, _, _) => self.sne(vx, il),
+            (0x5, vx, vy, 0x0) => self.se_reg(vx, vy),
+            (0x6, vx, _, _) => self.ld(vx, il),
+            (0x7, vx, _, _) => self.add(vx, il),
+            (0x8, vx, vy, 0x0) => self.ld_reg(vx, vy),
+            (0x8, vx, vy, 0x1) => self.or(vx, vy),
+            (0x8, vx, vy, 0x2) => self.and(vx, vy),
+            (0x8, vx, vy, 0x3) => self.xor(vx, vy),
+            (0x8, vx, vy, 0x4) => self.add_reg(vx, vy),
+            (0x8, vx, vy, 0x5) => self.sub(vx, vy),
+            (0x8, vx, vy, 0x6) => self.shr(vx, vy),
+            (0x8, vx, vy, 0x7) => self.subn(vx, vy),
+            (0x8, vx, vy, 0xE) => self.shl(vx, vy),
+            (0x9, vx, vy, 0x0) => self.sne_reg(vx, vy),
+            (0xA, vx, vy, n3) => self.ld_i(vx, vy, n3),
+            (0xB, vx, vy, n3) => {
+                self.jmp_v0(vx, vy, n3);
                 return;
             }
-            (0xC, n1, _, _) => self.rnd(n1, il),
-            (0xD, n1, n2, n3) => {
-                if !self.drw(n1, n2, n3) {
+            (0xC, vx, _, _) => self.rnd(vx, il),
+            (0xD, vx, vy, n3) => {
+                if !self.drw(vx, vy, n3) {
                     return;
                 }
             }
-            (0xE, n1, 0x9, 0xE) => self.skp(n1),
-            (0xE, n1, 0xA, 0x1) => self.sknp(n1),
-            (0xF, n1, 0x0, 0x7) => self.ld_delay(n1),
-            (0xF, n1, 0x0, 0xA) => {
-                if !self.wait_key(n1) {
+            (0xE, vx, 0x9, 0xE) => self.skp(vx),
+            (0xE, vx, 0xA, 0x1) => self.sknp(vx),
+            (0xF, vx, 0x0, 0x7) => self.ld_delay(vx),
+            (0xF, vx, 0x0, 0xA) => {
+                if !self.wait_key(vx) {
                     return;
                 }
             }
-            (0xF, n1, 0x1, 0x5) => self.ld_todelay(n1),
-            (0xF, n1, 0x1, 0xE) => self.add_i(n1),
-            (0xF, n1, 0x2, 0x9) => self.ld_d_i(n1),
-            (0xF, n1, 0x3, 0x3) => self.bcd(n1),
-            (0xF, n1, 0x5, 0x5) => self.ld_i_vx(n1),
-            (0xF, n1, 0x6, 0x5) => self.ld_vx_i(n1),
+            (0xF, vx, 0x1, 0x5) => self.ld_todelay(vx),
+            (0xF, vx, 0x1, 0xE) => self.add_i(vx),
+            (0xF, vx, 0x2, 0x9) => self.ld_d_i(vx),
+            (0xF, vx, 0x3, 0x3) => self.bcd(vx),
+            (0xF, vx, 0x5, 0x5) => self.ld_i_vx(vx),
+            (0xF, vx, 0x6, 0x5) => self.ld_vx_i(vx),
             _ => {
                 println!("unknown -> {:x} : {:02x}{:02x}", self.pc, ih, il);
                 unimplemented!();
